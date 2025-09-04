@@ -24,6 +24,6 @@ reinstall: build-wheel
 clean:
 	rm -f config.h
 	rm -rf build dist $(MODNAME).egg-info
-	rm -f *.dll *.so *.whl *.pyc *~
+	rm -f *.dll *.so *.whl *.pyc *~ .??*~
 
 -include GNUmakefile.local

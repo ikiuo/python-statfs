@@ -674,10 +674,13 @@ method_getmntinfo(PyObject *module, PyObject *args, PyObject *kwargs)
 static int
 prepare_statfs(PyObject *module, PyObject *namedtuple)
 {
-    PyObject *members = NULL;
     PyObject *name = NULL;
+    PyObject *item = NULL;
+    PyObject *indices = NULL;
+    PyObject *members = NULL;
     const char *mflag = NULL;
     const char *valid[STATFS_MEMBERS];
+    int index[STATFS_MEMBERS];
     const char *model;
     int cnt, c;
     int i;
@@ -704,9 +707,9 @@ prepare_statfs(PyObject *module, PyObject *namedtuple)
         goto error;
     for (i = 0; i < STATFS_MEMBERS; ++i)
     {
-        if (!(name = PyUnicode_FromString(statfs_member[i][0])))
+        if (!(item = PyUnicode_FromString(statfs_member[i][0])))
             goto error;
-        TupleMoveItem(members, (Py_ssize_t) i, &name);
+        TupleMoveItem(members, (Py_ssize_t) i, &item);
     }
     if (!(name = PyUnicode_FromString("statfs")))
         goto error;
@@ -717,7 +720,7 @@ prepare_statfs(PyObject *module, PyObject *namedtuple)
     if (ModuleAddRelease(module, "members", &members) < 0)
         goto error;
 
-    /* valid_members */
+    /* valid */
 
     cnt = 0;
     for (i = 0; i < STATFS_MEMBERS; ++i)
@@ -741,23 +744,31 @@ prepare_statfs(PyObject *module, PyObject *namedtuple)
 #endif /* DF32 */
         }
         if (c)
-            valid[cnt++] = statfs_member[i][0];
+        {
+            valid[cnt] = statfs_member[i][0];
+            index[cnt] = i;
+            ++cnt;
+        }
     }
-    if (!(members = PyTuple_New(cnt)))
-        goto error;
+
+    if (!(members = PyTuple_New(cnt))) goto error;
+    if (!(indices = PyTuple_New(cnt))) goto error;
     for (i = 0; i < cnt; ++i)
     {
-        if (!(name = PyUnicode_FromString(valid[i])))
-            goto error;
+        if (!(name = PyUnicode_FromString(valid[i]))) goto error;
+        if (!(item = PyLong_FromLong(index[i]))) goto error;
         TupleMoveItem(members, (Py_ssize_t) i, &name);
+        TupleMoveItem(indices, (Py_ssize_t) i, &item);
     }
-    if (ModuleAddRelease(module, "valid_members", &members) < 0)
-        goto error;
+    if (ModuleAddRelease(module, "valid_members", &members) < 0) goto error;
+    if (ModuleAddRelease(module, "valid_indices", &indices) < 0) goto error;
 
     return TRUE;
 
 error:
     Py_XDECREF(name);
+    Py_XDECREF(item);
+    Py_XDECREF(indices);
     Py_XDECREF(members);
     return FALSE;
 }
